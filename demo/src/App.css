@@ -30,3 +30,20 @@ body {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+table {
+  border: 1px solid silver;
+  margin-bottom: 1em;
+}
+
+table th {
+  text-align: left;
+}
+
+table td, table th {
+  padding: 2px 4px;
+}
+
+table .buttons button {
+  margin-right: 4px;
+}

@@ -1,61 +1,170 @@
 import React, { Component } from 'react';
 import './App.css';
-import trezorPlugin from '@makerdao/dai-plugin-trezor-web';
-const Maker = require('@makerdao/dai');
-
-async function setupMaker() {
-  window.Maker = Maker;
-
-  const maker = Maker.create('http', {
-    url: 'http://localhost:2000',
-    plugins: [trezorPlugin],
-    accounts: {
-      // default: { type: 'metamask' },
-      foo: {
-        type: 'privateKey',
-        key: 'b178ad06eb08e2cd34346b5c8ec06654d6ccb1cadf1c9dbd776afd25d44ab8d0'
-        // address: 0x8a002199541f32d49f8a12fc5c307bef74436929
-      }
-    }
-  });
-
-  await maker.authenticate();
-  console.log(
-    'current address is ' + maker.service('accounts').currentAddress()
-  );
-
-  // we can add an account in the initial config, but also after maker is
-  // initialized. this allows us to control when the Trezor popup appears.
-  // type 'trezor' is valid only because TrezorPlugin is loaded.
-
-  await maker.addAccount('myTrezor1', {
-    type: 'trezor',
-    path: "44'/60'/0'/0/1"
-  });
-
-  // switch accounts, do something
-  // maker.useAccount('metamask');
-
-  // switch back, do something else
-  // maker.useAccount('trezor2');
-  return maker;
-}
+import setupMaker from './setupMaker';
 
 class App extends Component {
   constructor(props) {
     super(props);
-    this.state = {};
+    this.state = {
+      path: "44'/60'/0'/0/0",
+      accounts: [],
+      cdps: []
+    };
   }
 
   componentDidMount() {
     setupMaker().then(maker => {
       this.setState({ maker });
+      this.updateAccounts(maker);
     });
   }
 
+  async updateAccounts(maker) {
+    if (!maker) maker = this.state.maker;
+    const accounts = await Promise.all(
+      maker.listAccounts().map(async account => {
+        return {
+          ...account,
+          balance: await maker.getToken('ETH').balanceOf(account.address)
+        };
+      })
+    );
+    this.setState({
+      accounts,
+      currentAccount: maker.currentAccount()
+    });
+  }
+
+  findTrezor = async () => {
+    const { maker, path } = this.state;
+    await maker.addAccount('myTrezor', {
+      type: 'trezor',
+      path
+    });
+    await this.updateAccounts();
+  };
+
+  useAccount = async name => {
+    const { maker } = this.state;
+    maker.useAccount(name);
+    await this.updateAccounts();
+  };
+
+  openCdp = async () => {
+    const { maker } = this.state;
+    const cdp = await maker.openCdp();
+    const id = await cdp.getId();
+    const info = await cdp.getInfo();
+    this.setState(({ cdps }) => ({
+      cdps: [...cdps, { id, owner: info.lad.toLowerCase() }]
+    }));
+  };
+
+  fund = async name => {
+    const { accounts, maker, funder } = this.state;
+    if (!funder) return alert('Pick a funder first.');
+    const sender = accounts.find(a => a.name === funder);
+    const receiver = accounts.find(a => a.name === name);
+    if (receiver === sender) return alert('Fund a different account.');
+    maker.useAccount(sender.name);
+    await maker.getToken('ETH').transfer(receiver.address, 1);
+    await this.updateAccounts();
+  };
+
   render() {
-    return <div>Makers gonna make</div>;
+    const { accounts, currentAccount, path, cdps, funder } = this.state;
+    return (
+      <div>
+        <h3>Demo: Multiple accounts &amp; hardware wallet integration</h3>
+        <h4>Accounts</h4>
+        <AccountTable
+          {...{ accounts, currentAccount }}
+          useAccount={this.useAccount}
+          fund={this.fund}
+          funder={funder}
+          setFunder={name => this.setState({ funder: name })}
+        />
+        <button onClick={this.findTrezor}>Connect to Trezor</button>{' '}
+        <label>
+          derivation path:{' '}
+          <input
+            type="text"
+            value={path}
+            onChange={ev => this.setState({ path: ev.target.value })}
+          />
+        </label>
+        <br />
+        <br />
+        <button onClick={this.openCdp}>
+          Open a CDP using the selected account
+        </button>
+        <h4>CDPs created</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>id</th>
+              <th>owner</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cdps.map(({ id, owner }) => (
+              <tr key={id}>
+                <td>{id}</td>
+                <td>{owner}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
   }
 }
 
 export default App;
+
+const AccountTable = ({
+  accounts,
+  currentAccount,
+  useAccount,
+  fund,
+  funder,
+  setFunder
+}) => (
+  <table>
+    <thead>
+      <tr>
+        <th>name</th>
+        <th>type</th>
+        <th>address</th>
+        <th>ETH balance</th>
+        <th>funder</th>
+      </tr>
+    </thead>
+    <tbody>
+      {accounts.map(({ name, address, balance, type }) => (
+        <tr key={name}>
+          <td>{name}</td>
+          <td>{type}</td>
+          <td>{address}</td>
+          <td>{balance}</td>
+          <td>
+            <input
+              type="radio"
+              name={name}
+              onClick={() => setFunder(name)}
+              checked={name === funder}
+            />
+          </td>
+          <td className="buttons">
+            {name === currentAccount.name ? (
+              <button disabled>In use</button>
+            ) : (
+              <button onClick={() => useAccount(name)}>Use</button>
+            )}
+            <button onClick={() => fund(name)}>Fund</button>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+);
