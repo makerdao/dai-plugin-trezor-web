@@ -28,6 +28,7 @@ await maker.addAccount('myTrezor2', { type: 'trezor' };
 The demo app is set up to work with the Dai.js [test chain](testchain). You can add a Trezor account, transfer ETH between all three accounts, and open CDPs with any of them.
 
 ```shell
+yarn build
 cd demo
 yarn install
 yarn start
