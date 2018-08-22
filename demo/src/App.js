@@ -37,11 +37,15 @@ class App extends Component {
 
   findTrezor = async () => {
     const { maker, path } = this.state;
-    await maker.addAccount('myTrezor', {
-      type: 'trezor',
-      path
-    });
-    await this.updateAccounts();
+    try {
+      await maker.addAccount('myTrezor', {
+        type: 'trezor',
+        path
+      });
+      await this.updateAccounts();
+    } catch(err) {
+      alert("Couldn't add Trezor: " + err.message);
+    }
   };
 
   useAccount = async name => {
