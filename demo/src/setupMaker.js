@@ -9,18 +9,37 @@ const keys = [
   '819d5a9152a1aa37b514d13f861d5e53aae810eedd3876f3f9aaf9e6bcb7c2bb'
 ];
 
-export default async function() {
+export default async function(useMetaMask) {
   window.Maker = Maker;
 
-  const maker = Maker.create('http', {
-    url: 'http://localhost:2000',
-    plugins: [trezorPlugin],
-    accounts: {
-      foo: { type: 'privateKey', key: keys[0] },
-      bar: { type: 'privateKey', key: keys[1] }
-    }
-  });
+  let maker;
+  if (useMetaMask) {
+    maker = Maker.create('browser', {
+      plugins: [trezorPlugin],
+      accounts: {
+        myMetamask: { type: 'provider' },
+        foo: { type: 'privateKey', key: keys[0] },
+        bar: { type: 'privateKey', key: keys[1] }
+      }
+    });
+  } else {
+    maker = Maker.create('http', {
+      url: 'http://localhost:2000',
+      plugins: [trezorPlugin],
+      accounts: {
+        myMetamask: { type: 'browser' },
+        foo: { type: 'privateKey', key: keys[0] },
+        bar: { type: 'privateKey', key: keys[1] }
+      }
+    });
+  }
 
   await maker.authenticate();
+  window.maker = maker;
+  if (maker.service('web3').networkId() !== 999) {
+    alert(
+      'To work with testchain accounts, configure MetaMask to use "Custom RPC" with address "http://localhost:2000".'
+    );
+  }
   return maker;
 }

@@ -8,14 +8,19 @@ class App extends Component {
     this.state = {
       path: "44'/60'/0'/0/0",
       accounts: [],
-      cdps: []
+      cdps: [],
+      usingMetaMask: window.location.search.includes('metamask')
     };
   }
 
   componentDidMount() {
-    setupMaker().then(maker => {
+    setupMaker(this.state.usingMetaMask)
+      .then(maker => {
       this.setState({ maker });
       this.updateAccounts(maker);
+    }).catch(err => {
+      console.log(err);
+      alert("Couldn't set up Maker: " + err.message);
     });
   }
 
@@ -43,7 +48,7 @@ class App extends Component {
         path
       });
       await this.updateAccounts();
-    } catch(err) {
+    } catch (err) {
       alert("Couldn't add Trezor: " + err.message);
     }
   };
@@ -71,21 +76,35 @@ class App extends Component {
     const receiver = accounts.find(a => a.name === name);
     if (receiver === sender) return alert('Fund a different account.');
     maker.useAccount(sender.name);
+    this.setState({ funding: true });
     await maker.getToken('ETH').transfer(receiver.address, 1);
+    this.setState({ funding: false });
     await this.updateAccounts();
   };
 
   render() {
-    const { accounts, currentAccount, path, cdps, funder } = this.state;
+    const {
+      accounts,
+      currentAccount,
+      path,
+      cdps,
+      funder,
+      funding,
+      usingMetaMask
+    } = this.state;
     return (
       <div>
         <h3>Demo: Multiple accounts &amp; hardware wallet integration</h3>
+        <p>
+          {usingMetaMask ? 'Using Metamask as provider' : 'Using RPC provider'}
+        </p>
         <h4>Accounts</h4>
         <AccountTable
           {...{ accounts, currentAccount }}
           useAccount={this.useAccount}
           fund={this.fund}
           funder={funder}
+          funding={funding}
           setFunder={name => this.setState({ funder: name })}
         />
         <button onClick={this.findTrezor}>Connect to Trezor</button>{' '}
@@ -132,6 +151,7 @@ const AccountTable = ({
   useAccount,
   fund,
   funder,
+  funding,
   setFunder
 }) => (
   <table>
@@ -165,7 +185,9 @@ const AccountTable = ({
             ) : (
               <button onClick={() => useAccount(name)}>Use</button>
             )}
-            <button onClick={() => fund(name)}>Fund</button>
+            <button onClick={() => fund(name)} disabled={funding}>
+              {funding ? 'Funding...' : 'Fund'}
+            </button>
           </td>
         </tr>
       ))}
