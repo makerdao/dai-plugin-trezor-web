@@ -2,40 +2,25 @@ import trezorPlugin from '@makerdao/dai-plugin-trezor-web';
 const Maker = require('@makerdao/dai');
 
 // These are keys that are set up in our test chain with some Ether.
-const keys = [
-  // address: 0x8a002199541f32d49f8a12fc5c307bef74436929
+export const keys = [
   'b178ad06eb08e2cd34346b5c8ec06654d6ccb1cadf1c9dbd776afd25d44ab8d0',
-  // address: 0xfb803892d9db69ff03a4039802021e753f0b40de
-  '819d5a9152a1aa37b514d13f861d5e53aae810eedd3876f3f9aaf9e6bcb7c2bb'
+  '819d5a9152a1aa37b514d13f861d5e53aae810eedd3876f3f9aaf9e6bcb7c2bb',
+  'c15a32c1dc58c5a893ff141e668b816074bdcdf460956c36d7c4f3e3c5e1a04a',
+  'dc21e321bc4ce4f5daacb7acbc4b7875a48335308ade8dca87c93c266c6cf318',
+  'c9e69677a85b5f66969e134b915320942f4a1a6529aa1e7bc4cb6e3d059a1e6b'
 ];
 
 export default async function(useMetaMask) {
   window.Maker = Maker;
-
-  let maker;
-  if (useMetaMask) {
-    maker = Maker.create('browser', {
-      plugins: [trezorPlugin],
-      accounts: {
-        myMetamask: { type: 'provider' },
-        foo: { type: 'privateKey', key: keys[0] },
-        bar: { type: 'privateKey', key: keys[1] }
-      }
-    });
-  } else {
-    maker = Maker.create('http', {
-      url: 'http://localhost:2000',
-      plugins: [trezorPlugin],
-      accounts: {
-        myMetamask: { type: 'browser' },
-        foo: { type: 'privateKey', key: keys[0] },
-        bar: { type: 'privateKey', key: keys[1] }
-      }
-    });
-  }
+  const maker = Maker.create(useMetaMask ? 'browser' : 'http', {
+    url: 'http://localhost:2000',
+    plugins: [trezorPlugin],
+    accounts: {
+      test1: { type: 'privateKey', key: keys[0] }
+    }
+  });
 
   await maker.authenticate();
-  window.maker = maker;
   if (maker.service('web3').networkId() !== 999) {
     alert(
       'To work with testchain accounts, configure MetaMask to use "Custom RPC" with address "http://localhost:2000".'

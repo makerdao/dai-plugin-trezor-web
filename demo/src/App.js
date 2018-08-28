@@ -1,30 +1,34 @@
-import React, { Component } from 'react';
+import React, { Component, Fragment } from 'react';
 import './App.css';
-import setupMaker from './setupMaker';
+import setupMaker, { keys } from './setupMaker';
+import AccountTable from './AccountTable';
 
-class App extends Component {
+export default class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
       path: "44'/60'/0'/0/0",
       accounts: [],
       cdps: [],
-      usingMetaMask: window.location.search.includes('metamask')
+      keyIndex: 1,
+      trezorIndex: 1,
+      useMetaMask: window.location.search.includes('metamask')
     };
   }
 
   componentDidMount() {
-    setupMaker(this.state.usingMetaMask)
+    setupMaker(this.state.useMetaMask)
       .then(maker => {
-      this.setState({ maker });
-      this.updateAccounts(maker);
-    }).catch(err => {
-      console.log(err);
-      alert("Couldn't set up Maker: " + err.message);
-    });
+        this.setState({ maker });
+        this.updateAccounts(maker);
+      })
+      .catch(err => {
+        console.log(err);
+        alert("Couldn't set up Maker: " + err.message);
+      });
   }
 
-  async updateAccounts(maker) {
+  updateAccounts = async maker => {
     if (!maker) maker = this.state.maker;
     const accounts = await Promise.all(
       maker.listAccounts().map(async account => {
@@ -38,15 +42,16 @@ class App extends Component {
       accounts,
       currentAccount: maker.currentAccount()
     });
-  }
+  };
 
   findTrezor = async () => {
-    const { maker, path } = this.state;
+    const { maker, path, trezorIndex } = this.state;
     try {
-      await maker.addAccount('myTrezor', {
+      await maker.addAccount('myTrezor' + trezorIndex, {
         type: 'trezor',
         path
       });
+      this.setState({ trezorIndex: trezorIndex + 1 });
       await this.updateAccounts();
     } catch (err) {
       alert("Couldn't add Trezor: " + err.message);
@@ -69,17 +74,32 @@ class App extends Component {
     }));
   };
 
-  fund = async name => {
-    const { accounts, maker, funder } = this.state;
-    if (!funder) return alert('Pick a funder first.');
-    const sender = accounts.find(a => a.name === funder);
-    const receiver = accounts.find(a => a.name === name);
-    if (receiver === sender) return alert('Fund a different account.');
-    maker.useAccount(sender.name);
-    this.setState({ funding: true });
-    await maker.getToken('ETH').transfer(receiver.address, 1);
-    this.setState({ funding: false });
-    await this.updateAccounts();
+  addAccount = async type => {
+    const { maker, keyIndex } = this.state;
+    try {
+      switch (type) {
+        case 'browser':
+          await maker.addAccount('metamask', { type: 'browser' });
+          break;
+        case 'provider':
+          await maker.addAccount('fromProvider', { type: 'provider' });
+          break;
+        case 'privateKey': {
+          if (keyIndex >= keys.length) return alert('No more keys');
+          await maker.addAccount('test' + (keyIndex + 1), {
+            type: 'privateKey',
+            key: keys[keyIndex]
+          });
+          this.setState({ keyIndex: keyIndex + 1 });
+          break;
+        }
+        default:
+          throw new Error('unknown type: ' + type);
+      }
+      await this.updateAccounts();
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
   render() {
@@ -88,24 +108,26 @@ class App extends Component {
       currentAccount,
       path,
       cdps,
-      funder,
-      funding,
-      usingMetaMask
+      maker,
+      useMetaMask
     } = this.state;
     return (
       <div>
         <h3>Demo: Multiple accounts &amp; hardware wallet integration</h3>
-        <p>
-          {usingMetaMask ? 'Using Metamask as provider' : 'Using RPC provider'}
-        </p>
+        {useMetaMask ? (
+          <p>
+            Using MetaMask as provider. <a href="/">Switch</a>
+          </p>
+        ) : (
+          <p>
+            Using HTTP provider. <a href="/?metamask">Switch</a>
+          </p>
+        )}
         <h4>Accounts</h4>
+        <AddAccounts addAccount={this.addAccount} />
         <AccountTable
           {...{ accounts, currentAccount }}
           useAccount={this.useAccount}
-          fund={this.fund}
-          funder={funder}
-          funding={funding}
-          setFunder={name => this.setState({ funder: name })}
         />
         <button onClick={this.findTrezor}>Connect to Trezor</button>{' '}
         <label>
@@ -116,81 +138,128 @@ class App extends Component {
             onChange={ev => this.setState({ path: ev.target.value })}
           />
         </label>
-        <br />
-        <br />
-        <button onClick={this.openCdp}>
-          Open a CDP using the selected account
-        </button>
-        <h4>CDPs created</h4>
-        <table>
-          <thead>
-            <tr>
-              <th>id</th>
-              <th>owner</th>
-            </tr>
-          </thead>
-          <tbody>
-            {cdps.map(({ id, owner }) => (
-              <tr key={id}>
-                <td>{id}</td>
-                <td>{owner}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Transfer
+          accounts={accounts}
+          maker={maker}
+          updateAccounts={this.updateAccounts}
+        />
+        <OpenCdp openCdp={this.openCdp} cdps={cdps} />
       </div>
     );
   }
 }
 
-export default App;
+const AddAccounts = ({ addAccount }) => (
+  <p className="buttonRow">
+    <button onClick={() => addAccount('browser')}>
+      Add account from MetaMask
+    </button>
+    <button onClick={() => addAccount('provider')}>
+      Add account from provider
+    </button>
+    <button onClick={() => addAccount('privateKey')}>
+      Add another private key account
+    </button>
+  </p>
+);
 
-const AccountTable = ({
-  accounts,
-  currentAccount,
-  useAccount,
-  fund,
-  funder,
-  funding,
-  setFunder
-}) => (
-  <table>
-    <thead>
-      <tr>
-        <th>name</th>
-        <th>type</th>
-        <th>address</th>
-        <th>ETH balance</th>
-        <th>funder</th>
-      </tr>
-    </thead>
-    <tbody>
-      {accounts.map(({ name, address, balance, type }) => (
-        <tr key={name}>
-          <td>{name}</td>
-          <td>{type}</td>
-          <td>{address}</td>
-          <td>{balance}</td>
-          <td>
-            <input
-              type="radio"
-              name={name}
-              onClick={() => setFunder(name)}
-              checked={name === funder}
-            />
-          </td>
-          <td className="buttons">
-            {name === currentAccount.name ? (
-              <button disabled>In use</button>
-            ) : (
-              <button onClick={() => useAccount(name)}>Use</button>
-            )}
-            <button onClick={() => fund(name)} disabled={funding}>
-              {funding ? 'Funding...' : 'Fund'}
-            </button>
-          </td>
-        </tr>
+class Transfer extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {};
+  }
+
+  componentDidUpdate() {
+    const { accounts } = this.props;
+    const { from, to } = this.state;
+    if (accounts.length > 0 && !from) {
+      this.setState({
+        from: accounts[0].name,
+        to: accounts[0].name,
+      });
+    }
+    if (accounts.length > 1 && (!to || from === to)) {
+      this.setState({
+        to: accounts[1].name 
+      });
+    }
+  }
+
+  setFrom = event => {
+    this.setState({ from: event.target.value });
+  };
+
+  setTo = event => {
+    this.setState({ to: event.target.value });
+  };
+
+  transfer = async () => {
+    const { from, to } = this.state;
+    const { accounts, maker } = this.props;
+    if (!to) return alert('Pick a recipient.');
+    if (from === to) return alert('Sender and receiver must be different.');
+    const sender = accounts.find(a => a.name === from);
+    const receiver = accounts.find(a => a.name === to);
+    maker.useAccount(sender.name);
+    await maker.getToken('ETH').transfer(receiver.address, 1);
+    await this.props.updateAccounts();
+  };
+
+  render() {
+    const { accounts } = this.props;
+    return (
+      <p>
+        Send 1 ETH from{' '}
+        <AccountSelect
+          accounts={accounts}
+          value={this.state.from}
+          onChange={this.setFrom}
+        />{' '}
+        to{' '}
+        <AccountSelect
+          accounts={accounts}
+          value={this.state.to}
+          onChange={this.setTo}
+        />{' '}
+        <button onClick={this.transfer}>Transfer</button>
+      </p>
+    );
+  }
+}
+
+const AccountSelect = ({ accounts, onChange, value }) => {
+  return (
+    <select value={value} onChange={onChange}>
+      {accounts.map(({ name }) => (
+        <option key={name} value={name}>
+          {name}
+        </option>
       ))}
-    </tbody>
-  </table>
+    </select>
+  );
+};
+
+const OpenCdp = ({ openCdp, cdps }) => (
+  <Fragment>
+    <p>
+      <button onClick={openCdp}>Open a CDP using the selected account</button>
+    </p>
+    <h4>CDPs created</h4>
+    <table>
+      <thead>
+        <tr>
+          <th>id</th>
+          <th>owner</th>
+        </tr>
+      </thead>
+      <tbody>
+        {cdps.map(({ id, owner }) => (
+          <tr key={id}>
+            <td>{id}</td>
+            <td>{owner}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </Fragment>
 );
