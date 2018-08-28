@@ -169,7 +169,7 @@ class Transfer extends Component {
     this.state = {};
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps, prevState) {
     const { accounts } = this.props;
     const { from, to } = this.state;
     if (accounts.length > 0 && !from) {
@@ -178,9 +178,13 @@ class Transfer extends Component {
         to: accounts[0].name,
       });
     }
-    if (accounts.length > 1 && (!to || from === to)) {
+    if (accounts.length > 1 && from === to) {
+      const changed = prevState.from !== from ? 'from' : 'to';
+      const unchanged = changed == 'from' ? 'to' : 'from';
+      const name = this.state[changed];
+      const otherAccount = accounts.find(a => a.name !== name);
       this.setState({
-        to: accounts[1].name 
+        [unchanged]: otherAccount.name
       });
     }
   }
