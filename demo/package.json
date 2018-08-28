@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@makerdao/dai": "latest",
+    "@makerdao/dai": "^0.7.0",
     "@makerdao/dai-plugin-trezor-web": "file:../dist",
     "react": "^16.4.2",
     "react-dom": "^16.4.2",
