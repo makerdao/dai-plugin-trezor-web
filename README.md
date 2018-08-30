@@ -12,7 +12,7 @@ const maker = Maker.create('http', {
   plugins: [TrezorPlugin],
   accounts: {
     // derivation path can be omitted; the default value is shown
-    myTrezor1: { type: 'trezor', path: "44'/60'/0'/0/0" } 
+    myTrezor1: { type: 'trezor', path: "44'/60'/0'/0/0" }
   }
 });
 
@@ -25,14 +25,4 @@ await maker.addAccount('myTrezor2', { type: 'trezor' };
 
 ### Try the demo app
 
-The demo app is set up to work with the Dai.js [test chain](testchain). You can add a Trezor account, transfer ETH between all three accounts, and open CDPs with any of them.
-
-```shell
-yarn build
-cd demo
-yarn install
-yarn start
-```
-
-[daijs]: https://github.com/makerdao/dai.js
-[testchain]: https://github.com/makerdao/dai.js/blob/dev/testchain/scripts/with-deployed-system
+You can find an example of this plugin being used in an app at [this repo](https://github.com/makerdao/integration-examples/tree/master/accounts).
