@@ -1,13 +1,14 @@
-import TrezorSubProvider from './vendor/trezor-subprovider';
+import TrezorSubProvider from "./vendor/trezor-subprovider";
 
 const defaultDerivationPath = "44'/60'/0'/0/0";
 
 export default function(maker) {
-  maker.service('accounts', true).addAccountType('trezor', async settings => {
+  maker.service("accounts", true).addAccountType("trezor", async settings => {
     const subprovider = TrezorSubProvider({
       // options: networkId, path, accountsLength, accountsOffset
+      accountsOffset: settings.accountsOffset || 0,
       accountsLength: settings.accountsLength || 1,
-      networkId: maker.service('web3').networkId(),
+      networkId: maker.service("web3").networkId(),
       path: settings.path || defaultDerivationPath
     });
 
@@ -21,8 +22,8 @@ export default function(maker) {
       }
 
       const addresses = await new Promise((resolve, reject) =>
-        subprovider.getAccounts(
-          (err, addresses) => (err ? reject(err) : resolve(addresses))
+        subprovider.getAccounts((err, addresses) =>
+          err ? reject(err) : resolve(addresses)
         )
       );
 
@@ -39,8 +40,8 @@ export default function(maker) {
       });
     } else {
       address = await new Promise((resolve, reject) =>
-        subprovider.getAccounts(
-          (err, addresses) => (err ? reject(err) : resolve(addresses[0]))
+        subprovider.getAccounts((err, addresses) =>
+          err ? reject(err) : resolve(addresses[0])
         )
       );
     }
