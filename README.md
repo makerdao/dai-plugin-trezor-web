@@ -1,4 +1,5 @@
 # dai-plugin-trezor-web
+
 A [Dai.js](daijs) plugin for using Trezor in a browser environment.
 
 ### Example usage
@@ -22,6 +23,15 @@ await maker.authenticate();
 // or you can defer showing the Trezor popup until later
 await maker.addAccount('myTrezor2', { type: 'trezor' };
 ```
+
+#### Options
+
+- `accountsLength`: Set this to the number of accounts to fetch. Must also set `choose` if greater than 1; see below. (Default: 1)
+
+* `accountsOffset`: Set this to the index offset number to fetch accounts from (Default: 0)
+
+- `path`: Set this to the derivation path to use. (Default: "44'/60'/0'/0/0")
+- `networkId`
 
 ### Try the demo app
 
