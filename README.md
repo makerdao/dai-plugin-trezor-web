@@ -36,3 +36,13 @@ await maker.addAccount('myTrezor2', { type: 'trezor' };
 ### Try the demo app
 
 You can find an example of this plugin being used in an app at [this repo](https://github.com/makerdao/integration-examples/tree/master/accounts).
+
+### Publishing to NPM
+
+```
+yarn
+// version bump on package.json
+yarn build
+cd /dist
+npm publish
+```
