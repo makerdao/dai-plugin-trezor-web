@@ -1,4 +1,4 @@
-import TrezorSubProvider from './vendor/trezor-subprovider';
+import TrezorSubProvider, { setChosenAddress } from './vendor/trezor-subprovider';
 
 const defaultDerivationPath = "44'/60'/0'/0/0";
 
@@ -13,7 +13,6 @@ export default function(maker) {
     });
 
     let address;
-
     if (settings.accountsLength && settings.accountsLength > 1) {
       if (!settings.choose) {
         throw new Error(
@@ -38,6 +37,7 @@ export default function(maker) {
           callback
         );
       });
+      setChosenAddress(address);
     } else {
       address = await new Promise((resolve, reject) =>
         subprovider.getAccounts((err, addresses) =>

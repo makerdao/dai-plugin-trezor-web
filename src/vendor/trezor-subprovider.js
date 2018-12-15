@@ -7,6 +7,12 @@ import TrezorConnect from './trezor-connect';
 
 const allowedHdPaths = ["44'/1'", "44'/60'", "44'/61'"];
 
+let chosenAddress;
+
+export function setChosenAddress(address){
+  chosenAddress=address;
+}
+
 function makeError(msg, id) {
   const err = new Error(msg);
   // $FlowFixMe
@@ -128,6 +134,9 @@ export default function createTrezorSubprovider(
   }
 
   async function signPersonalMessage(msgData) {
+    if(chosenAddress){
+      msgData.from=chosenAddress;
+    }
     const path = addressToPathMap[msgData.from.toLowerCase()];
     if (!path) throw new Error(`address unknown '${msgData.from}'`);
     try {
@@ -166,6 +175,9 @@ export default function createTrezorSubprovider(
   }
 
   async function signTransaction(txData) {
+    if(chosenAddress){
+      txData.from=chosenAddress;
+    }
     const path = `m/${addressToPathMap[txData.from.toLowerCase()]}`;
     if (!path) throw new Error(`address unknown '${txData.from}'`);
     try {
