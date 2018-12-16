@@ -1,6 +1,6 @@
 {
   "name": "@makerdao/dai-plugin-trezor-web",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "main": "index.js",
   "license": "MIT",
   "scripts": {
