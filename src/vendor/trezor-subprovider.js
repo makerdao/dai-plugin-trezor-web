@@ -23,7 +23,10 @@ function obtainPathComponentsFromDerivationPath(derivationPath) {
   const regExp = /^(44'\/(?:1|60|61)'\/\d+'\/\d+?\/)(\d+)$/;
   const matchResult = regExp.exec(derivationPath);
   if (matchResult === null) {
-    throw makeError("To get multiple accounts your derivation path must follow pattern 44'/60|61'/x'/n ", 'InvalidDerivationPath');
+    throw makeError(
+      "To get multiple accounts your derivation path must follow pattern 44'/60|61'/x'/n ",
+      'InvalidDerivationPath'
+    );
   }
   return { basePath: matchResult[1], index: parseInt(matchResult[2], 10) };
 }
@@ -57,7 +60,12 @@ export default function createTrezorSubprovider(
     ...options
   };
   if (!allowedHdPaths.some(hdPref => path.startsWith(hdPref))) {
-    throw makeError(`Trezor derivation path allowed are ${allowedHdPaths.join(", ")}. ${path} is not supported`, 'InvalidDerivationPath');
+    throw makeError(
+      `Trezor derivation path allowed are ${allowedHdPaths.join(
+        ", "
+      )}. ${path} is not supported`,
+      'InvalidDerivationPath'
+    );
   }
 
   const pathComponents = obtainPathComponentsFromDerivationPath(path);
@@ -162,7 +170,10 @@ export default function createTrezorSubprovider(
       const signedChainId = Math.floor((tx.v[0] - 35) / 2);
       const validChainId = networkId & 0xff; // FIXME this is to fixed a current workaround that app don't support > 0xff
       if (signedChainId !== validChainId) {
-        throw makeError(`Invalid networkId signature returned. Expected: ${networkId}, Got: ${signedChainId}`, 'InvalidNetworkId');
+        throw makeError(
+          `Invalid networkId signature returned. Expected: ${networkId}, Got: ${signedChainId}`,
+          'InvalidNetworkId'
+        );
       }
       return `0x${tx.serialize().toString('hex')}`;
     } catch (e) {
