@@ -62,7 +62,7 @@ export default function createTrezorSubprovider(
   if (!allowedHdPaths.some(hdPref => path.startsWith(hdPref))) {
     throw makeError(
       `Trezor derivation path allowed are ${allowedHdPaths.join(
-        ", "
+        ', '
       )}. ${path} is not supported`,
       'InvalidDerivationPath'
     );
