@@ -9,7 +9,7 @@ import TrezorPlugin from '@makerdao/dai-plugin-trezor-web';
 import Maker from '@makerdao/dai';
 
 // this will trigger the Trezor popup immediately
-const maker = Maker.create('http', {
+const maker = await Maker.create('http', {
   plugins: [TrezorPlugin],
   accounts: {
     // derivation path can be omitted; the default value is shown
